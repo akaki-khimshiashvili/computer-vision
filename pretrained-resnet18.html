@@ -41,30 +41,49 @@ from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader, random_split
 
 
+# -------------------------------------------------
+# ძირითადი პარამეტრები
+# -------------------------------------------------
+
 DATASET_PATH = "dataset"
 MODEL_SAVE_PATH = "pretrained_cnn_model.pth"
 
 BATCH_SIZE = 4
 EPOCHS = 5
 LEARNING_RATE = 0.001
+
 IMAGE_SIZE = 224
 
+
+# -------------------------------------------------
+# მოწყობილობის არჩევა
+# -------------------------------------------------
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print("Using device:", device)
 
 
+# -------------------------------------------------
+# სურათების მომზადება
+# -------------------------------------------------
+
 transform = transforms.Compose([
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
     transforms.ToTensor(),
 
+    # ეს მნიშვნელობები გამოიყენება ImageNet-ზე გაწვრთნილი მოდელებისთვის.
+    # pretrained ResNet18 სწორედ ImageNet-ზეა გაწვრთნილი.
     transforms.Normalize(
         mean=[0.485, 0.456, 0.406],
         std=[0.229, 0.224, 0.225]
     )
 ])
 
+
+# -------------------------------------------------
+# Dataset-ის ჩატვირთვა
+# -------------------------------------------------
 
 dataset = datasets.ImageFolder(
     root=DATASET_PATH,
@@ -75,6 +94,10 @@ print("Classes:", dataset.classes)
 print("Total images:", len(dataset))
 
 
+# -------------------------------------------------
+# Train/Test გაყოფა
+# -------------------------------------------------
+
 train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
 
@@ -82,7 +105,6 @@ train_dataset, test_dataset = random_split(
     dataset,
     [train_size, test_size]
 )
-
 
 train_loader = DataLoader(
     train_dataset,
@@ -97,10 +119,16 @@ test_loader = DataLoader(
 )
 
 
+# -------------------------------------------------
+# Pretrained CNN მოდელის შექმნა
+# -------------------------------------------------
+
 num_classes = len(dataset.classes)
 
 model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
 
+# pretrained მოდელის feature extractor ნაწილი უკვე გაწვრთნილია.
+# ბოლო fully connected layer იცვლება ჩვენი კლასების რაოდენობის მიხედვით.
 model.fc = nn.Linear(
     model.fc.in_features,
     num_classes
@@ -108,6 +136,10 @@ model.fc = nn.Linear(
 
 model = model.to(device)
 
+
+# -------------------------------------------------
+# Loss function და optimizer
+# -------------------------------------------------
 
 criterion = nn.CrossEntropyLoss()
 
@@ -117,8 +149,11 @@ optimizer = optim.Adam(
 )
 
 
-for epoch in range(EPOCHS):
+# -------------------------------------------------
+# მოდელის გაწვრთნა
+# -------------------------------------------------
 
+for epoch in range(EPOCHS):
     model.train()
 
     running_loss = 0.0
@@ -126,7 +161,6 @@ for epoch in range(EPOCHS):
     total_predictions = 0
 
     for images, labels in train_loader:
-
         images = images.to(device)
         labels = labels.to(device)
 
@@ -145,7 +179,6 @@ for epoch in range(EPOCHS):
         _, predicted = torch.max(outputs, 1)
 
         total_predictions += labels.size(0)
-
         correct_predictions += (predicted == labels).sum().item()
 
     train_accuracy = 100 * correct_predictions / total_predictions
@@ -157,15 +190,17 @@ for epoch in range(EPOCHS):
     )
 
 
+# -------------------------------------------------
+# Accuracy-ის გამოთვლა test dataset-ზე
+# -------------------------------------------------
+
 model.eval()
 
 correct = 0
 total = 0
 
 with torch.no_grad():
-
     for images, labels in test_loader:
-
         images = images.to(device)
         labels = labels.to(device)
 
@@ -174,13 +209,16 @@ with torch.no_grad():
         _, predicted = torch.max(outputs, 1)
 
         total += labels.size(0)
-
         correct += (predicted == labels).sum().item()
 
 test_accuracy = 100 * correct / total
 
 print("Test Accuracy:", round(test_accuracy, 2), "%")
 
+
+# -------------------------------------------------
+# მოდელის შენახვა .pth ფორმატში
+# -------------------------------------------------
 
 torch.save(
     {

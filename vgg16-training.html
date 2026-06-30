@@ -34,6 +34,11 @@ import torch.optim as optim
 from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader, random_split
 
+
+# -------------------------------------------------
+# ძირითადი პარამეტრები
+# -------------------------------------------------
+
 DATASET_PATH = "dataset"
 MODEL_PATH = "vgg16_classifier.pth"
 
@@ -42,56 +47,144 @@ EPOCHS = 5
 LEARNING_RATE = 0.0001
 IMAGE_SIZE = 224
 
+
+# -------------------------------------------------
+# CPU ან GPU არჩევა
+# -------------------------------------------------
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print("Device:", device)
+
+
+# -------------------------------------------------
+# სურათების მომზადება
+# -------------------------------------------------
 
 transform = transforms.Compose([
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
     transforms.ToTensor(),
-    transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
+
+    # pretrained VGG16 გაწვრთნილია ImageNet-ზე.
+    # ამიტომ ვიყენებთ ImageNet-ის normalization მნიშვნელობებს.
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
 ])
 
-dataset = datasets.ImageFolder(DATASET_PATH, transform=transform)
+
+# -------------------------------------------------
+# Dataset-ის ჩატვირთვა
+# -------------------------------------------------
+
+dataset = datasets.ImageFolder(
+    root=DATASET_PATH,
+    transform=transform
+)
+
+print("Classes:", dataset.classes)
+print("Total images:", len(dataset))
+
+
+# -------------------------------------------------
+# Dataset-ის გაყოფა Train და Test ნაწილებად
+# -------------------------------------------------
 
 train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
 
-train_dataset, test_dataset = random_split(dataset,[train_size,test_size])
+train_dataset, test_dataset = random_split(
+    dataset,
+    [train_size, test_size]
+)
 
-train_loader = DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
-test_loader = DataLoader(test_dataset,batch_size=BATCH_SIZE)
 
-model = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+# -------------------------------------------------
+# DataLoader-ის შექმნა
+# -------------------------------------------------
 
-for p in model.features.parameters():
-    p.requires_grad = False
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=True
+)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=False
+)
+
+
+# -------------------------------------------------
+# Pretrained VGG16 მოდელის ჩატვირთვა
+# -------------------------------------------------
 
 num_classes = len(dataset.classes)
 
-model.classifier[6] = nn.Linear(model.classifier[6].in_features,num_classes)
+model = models.vgg16(
+    weights=models.VGG16_Weights.DEFAULT
+)
+
+
+# -------------------------------------------------
+# Feature extractor-ის გაყინვა
+# -------------------------------------------------
+
+# VGG16-ის convolution ნაწილი უკვე კარგად არის გაწვრთნილი ImageNet-ზე.
+# პატარა dataset-ის შემთხვევაში უკეთესია თავიდან მხოლოდ classifier ნაწილი გავწვრთნათ.
+for parameter in model.features.parameters():
+    parameter.requires_grad = False
+
+
+# -------------------------------------------------
+# Classifier layer-ის შეცვლა
+# -------------------------------------------------
+
+# VGG16-ის ბოლო layer თავდაპირველად 1000 კლასზე მუშაობს.
+# ჩვენ მას ვცვლით ჩვენი dataset-ის კლასების რაოდენობით.
+
+model.classifier[6] = nn.Linear(
+    in_features=model.classifier[6].in_features,
+    out_features=num_classes
+)
 
 model = model.to(device)
 
+
+# -------------------------------------------------
+# Loss function და Optimizer
+# -------------------------------------------------
+
 criterion = nn.CrossEntropyLoss()
 
-optimizer = optim.Adam(model.classifier.parameters(),lr=LEARNING_RATE)
+optimizer = optim.Adam(
+    model.classifier.parameters(),
+    lr=LEARNING_RATE
+)
+
+
+# -------------------------------------------------
+# მოდელის გაწვრთნა
+# -------------------------------------------------
 
 for epoch in range(EPOCHS):
-
     model.train()
 
-    total_loss=0
-    correct=0
-    total=0
+    total_loss = 0.0
+    correct = 0
+    total = 0
 
-    for x,y in train_loader:
-
-        x,y = x.to(device),y.to(device)
+    for images, labels in train_loader:
+        images = images.to(device)
+        labels = labels.to(device)
 
         optimizer.zero_grad()
 
-        out = model(x)
+        outputs = model(images)
 
-        loss = criterion(out,y)
+        loss = criterion(outputs, labels)
 
         loss.backward()
 
@@ -99,13 +192,60 @@ for epoch in range(EPOCHS):
 
         total_loss += loss.item()
 
-        _,pred = torch.max(out,1)
+        _, predicted = torch.max(outputs, 1)
 
-        total += y.size(0)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
 
-        correct += (pred==y).sum().item()
+    train_accuracy = 100 * correct / total
 
-print("Done training")
+    print(
+        f"Epoch [{epoch + 1}/{EPOCHS}] "
+        f"Loss: {total_loss:.4f} "
+        f"Train Accuracy: {train_accuracy:.2f}%"
+    )
+
+
+# -------------------------------------------------
+# Accuracy-ის გამოთვლა test dataset-ზე
+# -------------------------------------------------
+
+model.eval()
+
+correct = 0
+total = 0
+
+with torch.no_grad():
+    for images, labels in test_loader:
+        images = images.to(device)
+        labels = labels.to(device)
+
+        outputs = model(images)
+
+        _, predicted = torch.max(outputs, 1)
+
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+test_accuracy = 100 * correct / total
+
+print("Test Accuracy:", round(test_accuracy, 2), "%")
+
+
+# -------------------------------------------------
+# მოდელის შენახვა .pth ფორმატში
+# -------------------------------------------------
+
+torch.save(
+    {
+        "model_state_dict": model.state_dict(),
+        "classes": dataset.classes,
+        "test_accuracy": test_accuracy
+    },
+    MODEL_PATH
+)
+
+print("Model saved:", MODEL_PATH)
 </code></pre>
       </div>
     </main>

@@ -45,63 +45,89 @@
 
         <pre><code id="code">
 import cv2
-import numpy as np
 
 
-def load_image(path: str):
-    image = cv2.imread(path)
+# -------------------------------------------------
+# გამოსახულების წაკითხვა
+# -------------------------------------------------
 
-    if image is None:
-        raise FileNotFoundError(f"Image not found: {path}")
+image = cv2.imread("image.jpg")
 
-    return image
-
-
-def add_gaussian_noise(image, mean=0, std=10):
-    noise = np.random.normal(mean, std, image.shape).astype(np.float32)
-
-    noisy_image = image.astype(np.float32) + noise
-    noisy_image = np.clip(noisy_image, 0, 255).astype(np.uint8)
-
-    return noisy_image
+if image is None:
+    print("გამოსახულება ვერ მოიძებნა.")
+    print("დარწმუნდით, რომ image.jpg ფაილი იგივე საქაღალდეშია.")
+    exit()
 
 
-def apply_median_blur(image, ksize=5):
-    return cv2.medianBlur(image, ksize)
+# -------------------------------------------------
+# Grayscale ფორმატში გადაყვანა
+# -------------------------------------------------
+
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
-def apply_gaussian_blur(image, ksize=(5, 5), sigma=0):
-    return cv2.GaussianBlur(image, ksize, sigma)
+# -------------------------------------------------
+# Noise-ის შემცირება
+# -------------------------------------------------
+
+# მცირე blur ეხმარება threshold-ს, რომ ზედმეტი პატარა წერტილები ნაკლებად გამოჩნდეს.
+blurred = cv2.GaussianBlur(
+    gray,
+    (5, 5),
+    0
+)
 
 
-def process_image_pipeline(path: str):
-    image = load_image(path)
+# -------------------------------------------------
+# Threshold Segmentation
+# -------------------------------------------------
 
-    noisy = add_gaussian_noise(image)
-
-    median_clean = apply_median_blur(noisy)
-
-    gaussian_clean = apply_gaussian_blur(noisy)
-
-    return {
-        "original": image,
-        "noisy": noisy,
-        "median": median_clean,
-        "gaussian": gaussian_clean
-    }
+# threshold-ის შემდეგ პიქსელები იყოფა ორ ჯგუფად:
+# 0   -> ფონი
+# 255 -> ობიექტი
+_, threshold_image = cv2.threshold(
+    blurred,
+    120,
+    255,
+    cv2.THRESH_BINARY
+)
 
 
-def save_images(results: dict, prefix="output"):
-    for name, img in results.items():
-        cv2.imwrite(f"{prefix}_{name}.jpg", img)
+# -------------------------------------------------
+# ობიექტის გამოყოფა ფონიდან
+# -------------------------------------------------
+
+# mask გამოიყენება იმისთვის, რომ ორიგინალ სურათში დარჩეს მხოლოდ ის ნაწილი,
+# რომელიც threshold-ის მიხედვით ობიექტად ჩაითვალა.
+segmented_object = cv2.bitwise_and(
+    image,
+    image,
+    mask=threshold_image
+)
 
 
-def show_images(results: dict):
-    for name, img in results.items():
-        cv2.imshow(name, img)
+# -------------------------------------------------
+# შედეგის შენახვა
+# -------------------------------------------------
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+cv2.imwrite("threshold_result.jpg", threshold_image)
+cv2.imwrite("segmented_object.jpg", segmented_object)
+
+print("შედეგები შენახულია:")
+print("threshold_result.jpg")
+print("segmented_object.jpg")
+
+
+# -------------------------------------------------
+# გამოსახულებების ჩვენება
+# -------------------------------------------------
+
+cv2.imshow("Original Image", image)
+cv2.imshow("Threshold Segmentation", threshold_image)
+cv2.imshow("Object Separated From Background", segmented_object)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 </code></pre>
       </div>
     </main>

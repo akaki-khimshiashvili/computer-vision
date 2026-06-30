@@ -40,26 +40,44 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
 
+# -------------------------------------------------
+# ძირითადი პარამეტრები
+# -------------------------------------------------
+
 BATCH_SIZE = 64
 EPOCHS = 10
 LEARNING_RATE = 0.001
 MODEL_PATH = "cifar10_cnn_model.pth"
 
 
+# -------------------------------------------------
+# CPU ან GPU არჩევა
+# -------------------------------------------------
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print("Device:", device)
 
 
+# -------------------------------------------------
+# CIFAR-10 სურათების მომზადება
+# -------------------------------------------------
+
 transform = transforms.Compose([
     transforms.ToTensor(),
 
+    # CIFAR-10-ისთვის ხშირად გამოიყენება ეს normalization მნიშვნელობები.
+    # ეს ეხმარება მოდელს უფრო სტაბილურად ისწავლოს.
     transforms.Normalize(
         mean=(0.4914, 0.4822, 0.4465),
         std=(0.2470, 0.2435, 0.2616)
     )
 ])
 
+
+# -------------------------------------------------
+# CIFAR-10 dataset-ის ჩამოტვირთვა
+# -------------------------------------------------
 
 train_dataset = datasets.CIFAR10(
     root="data",
@@ -80,6 +98,10 @@ print("Test images:", len(test_dataset))
 print("Classes:", train_dataset.classes)
 
 
+# -------------------------------------------------
+# DataLoader-ის შექმნა
+# -------------------------------------------------
+
 train_loader = DataLoader(
     train_dataset,
     batch_size=BATCH_SIZE,
@@ -93,55 +115,88 @@ test_loader = DataLoader(
 )
 
 
+# -------------------------------------------------
+# CNN მოდელის შექმნა
+# -------------------------------------------------
+
 class CIFAR10CNN(nn.Module):
     def __init__(self):
         super().__init__()
 
+        # CIFAR-10 სურათები არის 3x32x32 ზომის.
+        # 3 ნიშნავს RGB არხებს.
         self.features = nn.Sequential(
-            nn.Conv2d(3,32,3,padding=1),
+            nn.Conv2d(
+                in_channels=3,
+                out_channels=32,
+                kernel_size=3,
+                padding=1
+            ),
             nn.ReLU(),
-            nn.MaxPool2d(2,2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(32,64,3,padding=1),
+            nn.Conv2d(
+                in_channels=32,
+                out_channels=64,
+                kernel_size=3,
+                padding=1
+            ),
             nn.ReLU(),
-            nn.MaxPool2d(2,2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(64,128,3,padding=1),
+            nn.Conv2d(
+                in_channels=64,
+                out_channels=128,
+                kernel_size=3,
+                padding=1
+            ),
             nn.ReLU(),
-            nn.MaxPool2d(2,2)
+            nn.MaxPool2d(kernel_size=2, stride=2)
         )
 
+        # 32x32 სურათი სამი pooling layer-ის შემდეგ ხდება 4x4.
+        # ბოლო feature map არის 128x4x4.
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(128*4*4,256),
+            nn.Linear(128 * 4 * 4, 256),
             nn.ReLU(),
-            nn.Linear(256,10)
+            nn.Linear(256, 10)
         )
 
-    def forward(self,x):
+    def forward(self, x):
         x = self.features(x)
         x = self.classifier(x)
+
         return x
 
 
 model = CIFAR10CNN().to(device)
 
 
+# -------------------------------------------------
+# Loss function და Optimizer
+# -------------------------------------------------
+
 criterion = nn.CrossEntropyLoss()
 
-optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=LEARNING_RATE
+)
 
+
+# -------------------------------------------------
+# მოდელის გაწვრთნა
+# -------------------------------------------------
 
 for epoch in range(EPOCHS):
-
     model.train()
 
-    total_loss = 0
+    total_loss = 0.0
     correct = 0
     total = 0
 
     for images, labels in train_loader:
-
         images = images.to(device)
         labels = labels.to(device)
 
@@ -160,7 +215,6 @@ for epoch in range(EPOCHS):
         _, predicted = torch.max(outputs, 1)
 
         total += labels.size(0)
-
         correct += (predicted == labels).sum().item()
 
     train_accuracy = 100 * correct / total
@@ -172,6 +226,10 @@ for epoch in range(EPOCHS):
     )
 
 
+# -------------------------------------------------
+# Accuracy-ის გამოთვლა test dataset-ზე
+# -------------------------------------------------
+
 model.eval()
 
 correct = 0
@@ -179,7 +237,6 @@ total = 0
 
 with torch.no_grad():
     for images, labels in test_loader:
-
         images = images.to(device)
         labels = labels.to(device)
 
@@ -188,13 +245,16 @@ with torch.no_grad():
         _, predicted = torch.max(outputs, 1)
 
         total += labels.size(0)
-
         correct += (predicted == labels).sum().item()
 
 test_accuracy = 100 * correct / total
 
 print("Test Accuracy:", round(test_accuracy, 2), "%")
 
+
+# -------------------------------------------------
+# მოდელის შენახვა .pth ფორმატში
+# -------------------------------------------------
 
 torch.save(
     {
