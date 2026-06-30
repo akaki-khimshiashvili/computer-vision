@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Face Detection</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>Machine Learning</h2>
+      <a href="index.html">Home</a>
+      <a href="face-detection.html">Face Detection</a>
+      <a href="motion-detection.html">Motion Detection</a>
+      <a href="vgg16-training.html">VGG16 Training</a>
+      <a href="resnet18-training.html">ResNet18 Training</a
+      ><a href="cifar10-cnn.html">CIFAR-10 CNN</a
+      ><a href="pretrained-resnet18.html">Pretrained ResNet18</a
+      ><a href="threshold-segmentation.html">Threshold Segmentation</a
+      ><a href="image-utils.html">Image Processing Utils</a>
+    </div>
+
+    <main>
+      <div class="card">
+        <h2>Face Detection</h2>
+
+        <p>Detects faces in real-time using Haar Cascade.</p>
+
+        <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
+
+        <pre><code id="code">
+import cv2
+
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+
+camera = cv2.VideoCapture(0)
+
+if not camera.isOpened():
+    print("კამერა ვერ ჩაირთო.")
+    exit()
+
+while True:
+
+    ret, frame = camera.read()
+
+    if not ret:
+        break
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(40,40))
+
+    for (x,y,w,h) in faces:
+
+        cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
+
+        cv2.putText(frame,"Face",(x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0,255,0),2)
+
+    cv2.imshow("Face Detection", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+
+camera.release()
+cv2.destroyAllWindows()
+</code></pre>
+      </div>
+    </main>
+
+    <script>
+      function copyCode() {
+        navigator.clipboard.writeText(
+          document.getElementById("code").innerText,
+        );
+      }
+    </script>
+  </body>
+</html>

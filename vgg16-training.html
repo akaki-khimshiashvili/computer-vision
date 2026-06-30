@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <title>VGG16 Training</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>Machine Learning</h2>
+      <a href="index.html">Home</a>
+      <a href="face-detection.html">Face Detection</a>
+      <a href="motion-detection.html">Motion Detection</a>
+      <a href="vgg16-training.html">VGG16 Training</a>
+      <a href="resnet18-training.html">ResNet18 Training</a>
+      <a href="cifar10-cnn.html">CIFAR-10 CNN</a
+      ><a href="pretrained-resnet18.html">Pretrained ResNet18</a
+      ><a href="threshold-segmentation.html">Threshold Segmentation</a
+      ><a href="image-utils.html">Image Processing Utils</a>
+    </div>
+
+    <main>
+      <div class="card">
+        <h2>VGG16 Transfer Learning</h2>
+
+        <p>Training image classifier using pretrained VGG16.</p>
+
+        <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
+
+        <pre><code id="code">
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+from torchvision import datasets, transforms, models
+from torch.utils.data import DataLoader, random_split
+
+DATASET_PATH = "dataset"
+MODEL_PATH = "vgg16_classifier.pth"
+
+BATCH_SIZE = 4
+EPOCHS = 5
+LEARNING_RATE = 0.0001
+IMAGE_SIZE = 224
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+transform = transforms.Compose([
+    transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
+])
+
+dataset = datasets.ImageFolder(DATASET_PATH, transform=transform)
+
+train_size = int(0.8 * len(dataset))
+test_size = len(dataset) - train_size
+
+train_dataset, test_dataset = random_split(dataset,[train_size,test_size])
+
+train_loader = DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+test_loader = DataLoader(test_dataset,batch_size=BATCH_SIZE)
+
+model = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+
+for p in model.features.parameters():
+    p.requires_grad = False
+
+num_classes = len(dataset.classes)
+
+model.classifier[6] = nn.Linear(model.classifier[6].in_features,num_classes)
+
+model = model.to(device)
+
+criterion = nn.CrossEntropyLoss()
+
+optimizer = optim.Adam(model.classifier.parameters(),lr=LEARNING_RATE)
+
+for epoch in range(EPOCHS):
+
+    model.train()
+
+    total_loss=0
+    correct=0
+    total=0
+
+    for x,y in train_loader:
+
+        x,y = x.to(device),y.to(device)
+
+        optimizer.zero_grad()
+
+        out = model(x)
+
+        loss = criterion(out,y)
+
+        loss.backward()
+
+        optimizer.step()
+
+        total_loss += loss.item()
+
+        _,pred = torch.max(out,1)
+
+        total += y.size(0)
+
+        correct += (pred==y).sum().item()
+
+print("Done training")
+</code></pre>
+      </div>
+    </main>
+
+    <script>
+      function copyCode() {
+        navigator.clipboard.writeText(
+          document.getElementById("code").innerText,
+        );
+      }
+    </script>
+  </body>
+</html>

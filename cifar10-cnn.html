@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+  <head>
+    <title>CIFAR-10 CNN</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="sidebar">
+      <h2>Machine Learning</h2>
+
+      <a href="index.html">Home</a>
+      <a href="face-detection.html">Face Detection</a>
+      <a href="motion-detection.html">Motion Detection</a>
+      <a href="vgg16-training.html">VGG16 Training</a>
+      <a href="resnet18-training.html">ResNet18 Training</a
+      ><a href="cifar10-cnn.html">CIFAR-10 CNN</a
+      ><a href="pretrained-resnet18.html">Pretrained ResNet18</a
+      ><a href="threshold-segmentation.html">Threshold Segmentation</a
+      ><a href="image-utils.html">Image Processing Utils</a>
+    </div>
+
+    <main>
+      <div class="card">
+        <h2>CIFAR-10 CNN from Scratch</h2>
+
+        <p>
+          This model builds and trains a Convolutional Neural Network (CNN) from
+          scratch to classify CIFAR-10 images.
+        </p>
+
+        <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
+
+        <pre><code id="code">
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+
+BATCH_SIZE = 64
+EPOCHS = 10
+LEARNING_RATE = 0.001
+MODEL_PATH = "cifar10_cnn_model.pth"
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print("Device:", device)
+
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+
+    transforms.Normalize(
+        mean=(0.4914, 0.4822, 0.4465),
+        std=(0.2470, 0.2435, 0.2616)
+    )
+])
+
+
+train_dataset = datasets.CIFAR10(
+    root="data",
+    train=True,
+    download=True,
+    transform=transform
+)
+
+test_dataset = datasets.CIFAR10(
+    root="data",
+    train=False,
+    download=True,
+    transform=transform
+)
+
+print("Train images:", len(train_dataset))
+print("Test images:", len(test_dataset))
+print("Classes:", train_dataset.classes)
+
+
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=True
+)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=False
+)
+
+
+class CIFAR10CNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.features = nn.Sequential(
+            nn.Conv2d(3,32,3,padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),
+
+            nn.Conv2d(32,64,3,padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),
+
+            nn.Conv2d(64,128,3,padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2)
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(128*4*4,256),
+            nn.ReLU(),
+            nn.Linear(256,10)
+        )
+
+    def forward(self,x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
+
+
+model = CIFAR10CNN().to(device)
+
+
+criterion = nn.CrossEntropyLoss()
+
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+
+for epoch in range(EPOCHS):
+
+    model.train()
+
+    total_loss = 0
+    correct = 0
+    total = 0
+
+    for images, labels in train_loader:
+
+        images = images.to(device)
+        labels = labels.to(device)
+
+        optimizer.zero_grad()
+
+        outputs = model(images)
+
+        loss = criterion(outputs, labels)
+
+        loss.backward()
+
+        optimizer.step()
+
+        total_loss += loss.item()
+
+        _, predicted = torch.max(outputs, 1)
+
+        total += labels.size(0)
+
+        correct += (predicted == labels).sum().item()
+
+    train_accuracy = 100 * correct / total
+
+    print(
+        f"Epoch [{epoch + 1}/{EPOCHS}] "
+        f"Loss: {total_loss:.4f} "
+        f"Train Accuracy: {train_accuracy:.2f}%"
+    )
+
+
+model.eval()
+
+correct = 0
+total = 0
+
+with torch.no_grad():
+    for images, labels in test_loader:
+
+        images = images.to(device)
+        labels = labels.to(device)
+
+        outputs = model(images)
+
+        _, predicted = torch.max(outputs, 1)
+
+        total += labels.size(0)
+
+        correct += (predicted == labels).sum().item()
+
+test_accuracy = 100 * correct / total
+
+print("Test Accuracy:", round(test_accuracy, 2), "%")
+
+
+torch.save(
+    {
+        "model_state_dict": model.state_dict(),
+        "classes": train_dataset.classes,
+        "test_accuracy": test_accuracy
+    },
+    MODEL_PATH
+)
+
+print("Model saved as:", MODEL_PATH)
+</code></pre>
+      </div>
+    </main>
+
+    <script>
+      function copyCode() {
+        navigator.clipboard.writeText(
+          document.getElementById("code").innerText,
+        );
+      }
+    </script>
+  </body>
+</html>

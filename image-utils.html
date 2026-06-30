@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Image Processing Utils</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="sidebar">
+      <h2>Machine Learning</h2>
+
+      <a href="index.html">Home</a>
+      <a href="face-detection.html">Face Detection</a>
+      <a href="motion-detection.html">Motion Detection</a>
+      <a href="vgg16-training.html">VGG16 Training</a>
+      <a href="resnet18-training.html">ResNet18 Training</a>
+      <a href="pretrained-resnet18.html">Pretrained ResNet18</a>
+      <a href="cifar10-cnn.html">CIFAR-10 CNN</a>
+      <a href="threshold-segmentation.html">Threshold Segmentation</a>
+      <a href="image-utils.html">Image Processing Utils</a>
+    </div>
+
+    <main>
+      <div class="card">
+        <h2>Image Processing Utilities</h2>
+
+        <p>
+          This module provides reusable functions for image loading, noise
+          injection, and denoising using Gaussian and Median filters. It is
+          designed as a shared toolkit for all computer vision projects.
+        </p>
+
+        <h3>What this includes</h3>
+
+        <ul>
+          <li>Image loading with validation</li>
+          <li>Gaussian noise generation</li>
+          <li>Median blur denoising</li>
+          <li>Gaussian blur smoothing</li>
+          <li>Full processing pipeline</li>
+          <li>Save & display helpers</li>
+        </ul>
+
+        <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
+
+        <pre><code id="code">
+import cv2
+import numpy as np
+
+
+def load_image(path: str):
+    image = cv2.imread(path)
+
+    if image is None:
+        raise FileNotFoundError(f"Image not found: {path}")
+
+    return image
+
+
+def add_gaussian_noise(image, mean=0, std=10):
+    noise = np.random.normal(mean, std, image.shape).astype(np.float32)
+
+    noisy_image = image.astype(np.float32) + noise
+    noisy_image = np.clip(noisy_image, 0, 255).astype(np.uint8)
+
+    return noisy_image
+
+
+def apply_median_blur(image, ksize=5):
+    return cv2.medianBlur(image, ksize)
+
+
+def apply_gaussian_blur(image, ksize=(5, 5), sigma=0):
+    return cv2.GaussianBlur(image, ksize, sigma)
+
+
+def process_image_pipeline(path: str):
+    image = load_image(path)
+
+    noisy = add_gaussian_noise(image)
+
+    median_clean = apply_median_blur(noisy)
+
+    gaussian_clean = apply_gaussian_blur(noisy)
+
+    return {
+        "original": image,
+        "noisy": noisy,
+        "median": median_clean,
+        "gaussian": gaussian_clean
+    }
+
+
+def save_images(results: dict, prefix="output"):
+    for name, img in results.items():
+        cv2.imwrite(f"{prefix}_{name}.jpg", img)
+
+
+def show_images(results: dict):
+    for name, img in results.items():
+        cv2.imshow(name, img)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+</code></pre>
+      </div>
+    </main>
+
+    <script>
+      function copyCode() {
+        navigator.clipboard.writeText(
+          document.getElementById("code").innerText,
+        );
+      }
+    </script>
+  </body>
+</html>

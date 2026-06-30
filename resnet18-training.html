@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ResNet18 Training</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="sidebar">
+      <h2>Machine Learning</h2>
+
+      <a href="index.html">Home</a>
+      <a href="face-detection.html">Face Detection</a>
+      <a href="motion-detection.html">Motion Detection</a>
+      <a href="vgg16-training.html">VGG16 Training</a>
+      <a href="resnet18-training.html">ResNet18 Training</a
+      ><a href="cifar10-cnn.html">CIFAR-10 CNN</a
+      ><a href="pretrained-resnet18.html">Pretrained ResNet18</a
+      ><a href="threshold-segmentation.html">Threshold Segmentation</a
+      ><a href="image-utils.html">Image Processing Utils</a>
+    </div>
+
+    <main>
+      <div class="card">
+        <h2>ResNet18 Image Classification Training</h2>
+
+        <p>
+          This model trains an image classifier using a pretrained ResNet18
+          backbone with transfer learning.
+        </p>
+
+        <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
+
+        <pre><code id="code">
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+from torchvision import datasets, transforms, models
+from torch.utils.data import DataLoader, random_split
+
+
+DATASET_PATH = "dataset"
+MODEL_PATH = "resnet18_classifier.pth"
+
+BATCH_SIZE = 4
+EPOCHS = 5
+LEARNING_RATE = 0.001
+IMAGE_SIZE = 224
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+print("Device:", device)
+
+
+transform = transforms.Compose([
+    transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+    transforms.ToTensor(),
+
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+])
+
+
+dataset = datasets.ImageFolder(
+    root=DATASET_PATH,
+    transform=transform
+)
+
+print("Classes:", dataset.classes)
+print("Total images:", len(dataset))
+
+
+train_size = int(0.8 * len(dataset))
+test_size = len(dataset) - train_size
+
+train_dataset, test_dataset = random_split(
+    dataset,
+    [train_size, test_size]
+)
+
+
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=True
+)
+
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=False
+)
+
+
+num_classes = len(dataset.classes)
+
+model = models.resnet18(
+    weights=models.ResNet18_Weights.DEFAULT
+)
+
+
+model.fc = nn.Linear(
+    model.fc.in_features,
+    num_classes
+)
+
+model = model.to(device)
+
+
+criterion = nn.CrossEntropyLoss()
+
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=LEARNING_RATE
+)
+
+
+for epoch in range(EPOCHS):
+
+    model.train()
+
+    total_loss = 0
+    correct = 0
+    total = 0
+
+    for images, labels in train_loader:
+
+        images = images.to(device)
+        labels = labels.to(device)
+
+        optimizer.zero_grad()
+
+        outputs = model(images)
+
+        loss = criterion(outputs, labels)
+
+        loss.backward()
+
+        optimizer.step()
+
+        total_loss += loss.item()
+
+        _, predicted = torch.max(outputs, 1)
+
+        total += labels.size(0)
+
+        correct += (predicted == labels).sum().item()
+
+    train_accuracy = 100 * correct / total
+
+    print(
+        f"Epoch [{epoch + 1}/{EPOCHS}] "
+        f"Loss: {total_loss:.4f} "
+        f"Train Accuracy: {train_accuracy:.2f}%"
+    )
+
+
+model.eval()
+
+correct = 0
+total = 0
+
+with torch.no_grad():
+    for images, labels in test_loader:
+
+        images = images.to(device)
+        labels = labels.to(device)
+
+        outputs = model(images)
+
+        _, predicted = torch.max(outputs, 1)
+
+        total += labels.size(0)
+
+        correct += (predicted == labels).sum().item()
+
+test_accuracy = 100 * correct / total
+
+print("Test Accuracy:", round(test_accuracy, 2), "%")
+
+
+torch.save(
+    {
+        "model_state_dict": model.state_dict(),
+        "classes": dataset.classes,
+        "test_accuracy": test_accuracy
+    },
+    MODEL_PATH
+)
+
+print("Model saved:", MODEL_PATH)
+</code></pre>
+      </div>
+    </main>
+
+    <script>
+      function copyCode() {
+        navigator.clipboard.writeText(
+          document.getElementById("code").innerText,
+        );
+      }
+    </script>
+  </body>
+</html>
