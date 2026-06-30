@@ -25,8 +25,19 @@
         <h2>CIFAR-10 CNN from Scratch</h2>
 
         <p>
-          This model builds and trains a Convolutional Neural Network (CNN) from
-          scratch to classify CIFAR-10 images.
+          Used for: building and training an image classifier completely from
+          scratch (no pretrained weights) on the CIFAR-10 benchmark dataset —
+          60,000 small 32x32 color images across 10 fixed classes (plane, car,
+          bird, cat, etc., automatically downloaded via torchvision). How it
+          differs from the VGG16/ResNet18 scripts: those used transfer learning
+          on a custom dataset of your own images and a fixed number of arbitrary
+          classes; this one defines its own small 3-block CNN architecture from
+          zero and trains entirely on the standard CIFAR-10 dataset, with all
+          weights randomly initialized rather than reused from ImageNet. It's a
+          good baseline/from-scratch comparison point against the
+          transfer-learning approaches in the other two scripts — useful for
+          seeing how a small custom architecture performs without any pretrained
+          head start.
         </p>
 
         <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>

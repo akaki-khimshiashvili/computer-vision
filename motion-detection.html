@@ -23,7 +23,25 @@
       <div class="card">
         <h2>Motion Detection</h2>
 
-        <p>Detects movement using background subtraction.</p>
+        <p>
+          Show more This is a real-time motion detection script using OpenCV's
+          background subtraction. What it does: Opens the default webcam (index
+          0) Creates a MOG2 (Mixture of Gaussians) background subtractor, with
+          shadow detection disabled for a cleaner binary mask In a continuous
+          loop: Reads a frame from the camera Applies the background subtractor
+          to get a foreground mask (pixels that differ from the learned
+          background) Thresholds the mask to keep only strong foreground signals
+          (values above 250) Cleans up noise using erosion (shrinks small white
+          blobs) followed by dilation (regrows the remaining blobs, filling
+          gaps) Finds contours (connected regions) in the cleaned mask Filters
+          out small contours (area < 2000) to ignore noise/tiny movements For
+          any contour that passes the size threshold, draws a green bounding box
+          around it and flags movement = True If movement was detected, overlays
+          a red "MOVEMENT DETECTED" text on the frame Displays both the
+          annotated video feed and the raw mask in separate windows Exits when
+          the Esc key (keycode 27) is pressed, then releases the camera and
+          closes windows
+        </p>
 
         <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
 

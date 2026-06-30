@@ -22,7 +22,19 @@
       <div class="card">
         <h2>Face Detection</h2>
 
-        <p>Detects faces in real-time using Haar Cascade.</p>
+        <p>
+          Show moreThis is a real-time face detection script using OpenCV's
+          built-in Haar Cascade classifier. What it does: Loads the pretrained
+          frontal face Haar Cascade that ships with OpenCV Opens the default
+          webcam (index 0) Continuously captures frames in a loop Converts each
+          frame to grayscale (Haar Cascade detection works better/faster on
+          grayscale) Runs detectMultiScale to find faces in the frame, with
+          parameters tuned for typical webcam distance (scaleFactor 1.1,
+          minNeighbors 5, minimum face size 40x40 px) Draws a green bounding box
+          and a "Face" label over each detected face Displays the annotated
+          video feed live in a window Exits the loop when the user presses "q",
+          then releases the camera and closes windows
+        </p>
 
         <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
 

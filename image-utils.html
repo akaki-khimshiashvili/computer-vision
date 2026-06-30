@@ -25,9 +25,23 @@
         <h2>Image Processing Utilities</h2>
 
         <p>
-          This module provides reusable functions for image loading, noise
-          injection, and denoising using Gaussian and Median filters. It is
-          designed as a shared toolkit for all computer vision projects.
+          Used for: simple object/background separation in a static image using
+          intensity-based thresholding — a classical (non-ML) image segmentation
+          technique, useful for cases where the object of interest is noticeably
+          brighter or darker than the background (e.g., a clearly lit object
+          against a dark backdrop). How it works: Loads image.jpg from disk,
+          with a basic error check if the file isn't found Converts to grayscale
+          (thresholding works on single-channel intensity values) Applies a
+          light Gaussian blur to suppress small-scale noise before thresholding,
+          so isolated stray pixels don't get misclassified as object/background
+          Applies binary thresholding: any pixel above intensity 120 becomes
+          white (255, treated as "object"), anything below becomes black (0,
+          "background") Uses that binary mask with bitwise_and to extract just
+          the object's pixels from the original color image, blacking out
+          everything else Saves two outputs: the raw black-and-white threshold
+          mask, and the color image with only the segmented object visible
+          Displays all three images (original, threshold mask, segmented result)
+          in windows until a key is pressed
         </p>
 
         <h3>What this includes</h3>

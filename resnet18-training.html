@@ -25,8 +25,23 @@
         <h2>ResNet18 Image Classification Training</h2>
 
         <p>
-          This model trains an image classifier using a pretrained ResNet18
-          backbone with transfer learning.
+          Used for: custom image classification via transfer learning, same goal
+          as the VGG16 script — train a model to recognize your own categories
+          from a folder of labeled images, instead of from-scratch training. Key
+          difference from the VGG16 version: here the entire ResNet18 model is
+          fine-tuned (all parameters stay trainable), not just the final layer.
+          There's no freezing step like
+          model.features.parameters().requires_grad = False, and the optimizer
+          is given model.parameters() (the whole network) rather than just
+          model.classifier.parameters(). Only the final fully-connected layer
+          (model.fc) is swapped out to match the number of custom classes, but
+          every layer is then updated during training. This is a more aggressive
+          fine-tuning strategy: it can yield better accuracy than
+          feature-extraction-only when you have enough data, since the
+          pretrained features get adapted to your specific images, but it costs
+          more compute and risks overfitting on small datasets (versus the
+          frozen-backbone approach in the VGG16 script, which is faster and
+          safer for small datasets).
         </p>
 
         <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>

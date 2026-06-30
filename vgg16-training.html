@@ -22,7 +22,21 @@
       <div class="card">
         <h2>VGG16 Transfer Learning</h2>
 
-        <p>Training image classifier using pretrained VGG16.</p>
+        <p>
+          This VGG16 script is used for custom image classification — training a
+          model to sort images into your own categories (not the standard
+          ImageNet 1000 classes) by reusing a pretrained network's learned
+          visual features rather than training from scratch. Practical use case:
+          you'd point DATASET_PATH at a folder of your own labeled images (one
+          subfolder per class — e.g., "cats", "dogs", "defective_parts",
+          "plant_diseases", whatever the task is), and the script teaches VGG16
+          to recognize those specific categories. Since the convolutional layers
+          stay frozen and only the final classifier is retrained, this works
+          well even with a small dataset (the 80/20 split and small batch size
+          of 4 suggest that's the expectation here), because you're leveraging
+          features VGG16 already learned from millions of ImageNet images rather
+          than learning visual patterns from zero.
+        </p>
 
         <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
 

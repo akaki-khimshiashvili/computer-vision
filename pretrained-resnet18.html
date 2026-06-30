@@ -25,8 +25,24 @@
         <h2>Pretrained ResNet18 Image Classification</h2>
 
         <p>
-          This model uses a pretrained ResNet18 backbone from ImageNet and
-          adapts it to a custom dataset using transfer learning.
+          How it compares to the others: This is essentially a near-duplicate of
+          the ResNet18 training script from before — same architecture
+          (ResNet18, pretrained, full fine-tune, all layers trainable), same
+          transform/normalization, same train/test split logic, same training
+          and evaluation loop. The differences are mostly cosmetic/naming:
+          Variable names changed
+          (running_loss/correct_predictions/total_predictions vs.
+          total_loss/correct/total) LEARNING_RATE is 0.001 here too (matches the
+          ResNet18 script, differs from VGG16's 0.0001) Saved dictionary key is
+          "accuracy" instead of "test_accuracy" Output filename is
+          pretrained_cnn_model.pth instead of resnet18_classifier.pth Imports os
+          (unused in this script — likely leftover/vestigial) Functionally this
+          is the same training pipeline duplicated, just relabeled — possibly an
+          earlier draft or a copy made for a different project/output naming
+          convention. If you're maintaining both, you'd probably want to
+          consolidate them into one script to avoid drift, unless there's a
+          specific reason you're keeping near-identical copies (e.g., comparing
+          minor variations later).
         </p>
 
         <button class="copy-btn" onclick="copyCode()">Copy Full Code</button>
